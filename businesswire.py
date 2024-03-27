@@ -89,52 +89,41 @@ class BusinessWire:
             self._wait.until(ec.presence_of_element_located((By.CSS_SELECTOR, '.bwNewsList')))
             el_list = self._driver.find_element(By.CLASS_NAME, 'bwNewsList').find_elements(By.TAG_NAME, 'li')
             for el in el_list:
-                article_link = el.find_element(By.CLASS_NAME, 'bwTitleLink')
-                web_link = article_link.get_attribute('href')
-                title = article_link.text
-                pub_date = dateparser.parse(el.find_element(By.TAG_NAME, 'time').get_attribute('datetime'))
-                self._driver.execute_script("window.open('');")
-                self._driver.switch_to.window(self._driver.window_handles[1])
-                time.sleep(uniform(0.1, 1.2))
-                self._driver.get(web_link)
-                self._wait.until(ec.presence_of_element_located((By.CSS_SELECTOR, '.bw-release-story')))
-                text_content = self._driver.find_element(By.CLASS_NAME, 'bw-release-story').text
-                # print(web_link)
-                # print(title)
-                # print(pub_date)
-                # print(text_content)
-                # print('-' * 45)
-                if pub_date < self.date_begin:
-                    self.logger.info(f"Достигнута дата раньше {self.date_begin}. Завершение...")
-                    break
-                document = SPP_document(
-                    None,
-                    title=title,
-                    abstract=abstract if abstract else None,
-                    text=text_content,
-                    web_link=web_link,
-                    local_link=None,
-                    other_data=None,
-                    pub_date=pub_date,
-                    load_date=None,
-                )
-                # Логирование найденного документа
-                self.find_document(document)
-                self._driver.close()
-                self._driver.switch_to.window(self._driver.window_handles[0])
-                time.sleep(uniform(0.3, 1))
+                try:
+                    article_link = el.find_element(By.CLASS_NAME, 'bwTitleLink')
+                    web_link = article_link.get_attribute('href')
+                    title = article_link.text
+                    pub_date = dateparser.parse(el.find_element(By.TAG_NAME, 'time').get_attribute('datetime'))
+                    self._driver.execute_script("window.open('');")
+                    self._driver.switch_to.window(self._driver.window_handles[1])
+                    time.sleep(uniform(0.1, 1.2))
+                    self._driver.get(web_link)
+                    self._wait.until(ec.presence_of_element_located((By.CSS_SELECTOR, '.bw-release-story')))
+                    text_content = self._driver.find_element(By.CLASS_NAME, 'bw-release-story').text
+                except Exception as e:
+                    self.logger.warning(f'The Article cannot be parsed. Error: {e}')
+                else:
+                    document = SPP_document(
+                        None,
+                        title=title,
+                        abstract=abstract if abstract else None,
+                        text=text_content,
+                        web_link=web_link,
+                        local_link=None,
+                        other_data=None,
+                        pub_date=pub_date,
+                        load_date=None,
+                    )
+                    # Логирование найденного документа
+                    self.find_document(document)
+                    self._driver.close()
+                    self._driver.switch_to.window(self._driver.window_handles[0])
+                    time.sleep(uniform(0.3, 1))
             try:
                 self._driver.get(self._driver.find_element(By.CLASS_NAME, 'pagingNext').find_element(By.TAG_NAME, 'a').get_attribute('href'))
             except:
                 self.logger.info('Не найдено перехода на след. страницу. Завершение...')
                 break
-            # print('=== NEW_PAGE ===')
-            # print('=' * 90)
-
-
-        # ---
-        # ========================================
-        ...
 
     def _initial_access_source(self, url: str, delay: int = 2):
         self._driver.get(url)
